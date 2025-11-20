@@ -51,13 +51,15 @@ void open_read_file(char f_name[]) {
     int state = 1;
     board_t *board = malloc(sizeof(board_t)); //FIXME not sure about this
 
+    //FIXME não seria melhor faze um analyse para cacda tipo de ficheiro?
     for (int i = 0; i < done; i++) {
         if (buffer[i] == '#') state = 0;
         else if (state == 1 && buffer[i] == '\n') state = 1;
 
         else if (state == 1) {
             if (f_name[-1] == 'l') analyse_char_level(buffer, i, board);
-            else analyse_char_caracter(buffer, i);
+            else if(f_name[-1] == 'm') analyse_char_monster(buffer, i, board);
+            else if(f_name[-1] == 'p')analyse_char_pacman(buffer, i, board);
         }
     }
 
@@ -123,20 +125,56 @@ void analyse_char_level(char buf[], int i, board_t *board) {
             }
         }
         break;
-        case 'X':
-        case 'o':
-        case '@':
-            }
+        case 'X':{
+            board->board->content = buf[i];
+        }
+        break;
+        //Não percebo como funciona as posições do tabuleiro
+        case 'o':{ //FIXME mal implementado
+            board->board->content = buf[i];
+        }
+        break;
+        case '@':{
+            board->board->content = buf[i];
+        }
+        break;}
     
 }
 
-void analyse_char_caracter(char buf[], int i) {
+void analyse_char_monster(char buf[], int i, board_t *board) {
     // Placeholder function to analyze a character
     // Implement your character analysis logic here
 
     switch (buf[i]){
         case 'T':
-            if (buf[i + 1] == 'A'){}
+            if (buf[i + 1] == 'A'){
+                board -> ghosts[0].passo = buf[i + 6];
+            }
+            else if (buf[i + 1] == 'O'){
+                board -> ghosts[0].pos_x = buf[i + 4];
+                board -> ghosts[0].pos_y = buf[i + 6];
+            }
+            else if (buf[i + 1] == ' '){
+                //FIXME TODO
+            }
+        case 'C':
+        case 'A':
+        case 'D':
+        case 'W':
+        case 'S':
+        
+    }
+}
+
+void analyse_char_pacman(char buf[], int i, board_t *board) {
+    // Placeholder function to analyze a character
+    // Implement your character analysis logic here
+
+    switch (buf[i]){
+        case 'T':
+            if (buf[i + 1] == 'A'){
+
+            }
             if (buf[i + 1] == 'O'){}
             if (buf[i + 1] == ' '){}
         case 'C':
