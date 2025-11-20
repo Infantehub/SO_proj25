@@ -48,6 +48,21 @@ void open_read_file(char f_name[]) {
         buffer = new_buffer; 
     }
 
+    board_t *board = malloc(sizeof(board_t));
+    int monster_file_count = 0;
+    int pacman_file_count = 0;
+
+    if (f_name[-1] == 'l') analyse_level(buffer, board);
+    else if(f_name[-1] == 'm'){
+        analyse_monster(buffer, board, monster_file_count);
+        monster_file_count++;
+    } 
+    else if(f_name[-1] == 'p') {
+        analyse_char_pacman(buffer, board, pacman_file_count);
+        pacman_file_count++;
+    }
+
+/**
     int state = 1;
     board_t *board = malloc(sizeof(board_t)); //FIXME not sure about this
 
@@ -61,7 +76,7 @@ void open_read_file(char f_name[]) {
             else if(f_name[-1] == 'm') analyse_char_monster(buffer, i, board);
             else if(f_name[-1] == 'p')analyse_char_pacman(buffer, i, board);
         }
-    }
+    }*/
 
     free(buffer);
     /* close the file */
@@ -69,26 +84,43 @@ void open_read_file(char f_name[]) {
     return EXIT_SUCCESS;
 }
 
-void analyse_char_level(char buf[], int i, board_t *board) {
+void analyse_level(char buf[], board_t *board) {
     // Placeholder function to analyze a character
     // Implement your character analysis logic here
 
-    switch (buf[i]){
-        case 'D':{
+    int state = 1;
+    int pos_index = 0;
+
+    for(int i = 0; buf[i] != '\0'; i++){
+        if (buf[i] == '#') {
+            state = 0;
+            while (buf[i] != '\n' || buf[i] != '\0') {
+                i++;
+            }
+            state = 1;
+            continue;
+        };
+    
+        if(buf[i] == 'D'){
             board ->width = buf[i + 4];
-            board ->height = buf[i + 6];}
-            break;
-        case 'T':{
+            board ->height = buf[i + 6];
+            board->board = malloc(board->width * board->height * sizeof(board_pos_t));
+            continue;
+        }
+
+        if(buf[i] == 'T'){
             int num = 0;
             int c = 6;
             while (isdigit(buf[i + c])){
                 num = num * 10 + (buf[i + c] - '0');
                 c++;
             }
-            board ->tempo = num;}
-            break;
-        case 'P':{
-            char pac_file[256];
+            board ->tempo = num;
+            continue;
+        }
+
+        if(buf[i] == 'P'){
+            char pac_file[MAX_FILENAME];
             int c = 4;
             int j = 0;
             while(buf[i + c] != '\n'){
@@ -96,12 +128,18 @@ void analyse_char_level(char buf[], int i, board_t *board) {
                 j++;
                 c++;
             }
+            board->n_pacmans = 1; //apenas 1 pacman
+            board->pacmans = malloc(board->n_pacmans * sizeof(pacman_t));
             pac_file[j] = '\0';
-            strcpy(board->pacman_file, pac_file);}
-            break;
+            /* use bounded copy to avoid potential issues and ensure null-termination */
+            strncpy(board->pacman_file, pac_file, MAX_FILENAME - 1);
+            board->pacman_file[MAX_FILENAME - 1] = '\0';
+
+            continue;
+        }
             
-        case 'M': {
-            char mo_files[25][MAX_FILENAME];
+        if(buf[i] == 'M') {
+            char mo_files[MAX_GHOSTS][MAX_FILENAME];
             int file_count = 0;
             int c = i + 4;  // começa a ler depois do 'M'
             int j = 0;
@@ -119,69 +157,145 @@ void analyse_char_level(char buf[], int i, board_t *board) {
                 }
                 
             }
+            board->n_ghosts = file_count + 1; // número de ficheiros é o número de fantasmas
+            board->ghosts = malloc(board->n_ghosts * sizeof(ghost_t));
 
             for(int i = 0; i < file_count; i++){
-                strcpy(board->ghosts_files[i], mo_files[i]);
+                strncpy(board->ghosts_files[i], mo_files[i], MAX_FILENAME - 1);
+                board->ghosts_files[i][MAX_FILENAME - 1] = '\0';
             }
+
+            continue;
         }
-        break;
-        case 'X':{
-            board->board->content = buf[i];
+        //Posições do tabuleiro - têm que ser preenchidos todos os atributos de board_pos_t
+
+        if(buf[i] == 'X'){
+            board->board[pos_index].content = buf[i];
+            board->board[pos_index].has_dot = 0;
+            board->board[pos_index].has_portal = 0;
+            pos_index++;
+            continue;
         }
-        break;
-        //Não percebo como funciona as posições do tabuleiro
-        case 'o':{ //FIXME mal implementado
-            board->board->content = buf[i];
+        if(buf[i] == 'o'){
+            board->board[pos_index].content = buf[i];
+            board->board[pos_index].has_dot = 1;
+            board->board[pos_index].has_portal = 0;
+            pos_index++;
+            continue;
         }
-        break;
-        case '@':{
-            board->board->content = buf[i];
+        if(buf[i] == '@'){
+            board->board[pos_index].content = buf[i];
+            board->board[pos_index].has_portal = 1;
+            board->board[pos_index].has_dot = 0;
+            pos_index++;
+            continue;
         }
-        break;}
-    
+    }
 }
 
-void analyse_char_monster(char buf[], int i, board_t *board) {
+void analyse_monster(char buf[], board_t *board, int m_count) {
     // Placeholder function to analyze a character
     // Implement your character analysis logic here
+    int state = 1;
+    int pos_index = 0;
 
-    switch (buf[i]){
-        case 'T':
-            if (buf[i + 1] == 'A'){
-                board -> ghosts[0].passo = buf[i + 6];
+    for(int i = 0; buf[i] != '\0'; i++){
+        if (buf[i] == '#') {
+            state = 0;
+            while (buf[i] != '\n' || buf[i] != '\0') {
+                i++;
             }
-            else if (buf[i + 1] == 'O'){
-                board -> ghosts[0].pos_x = buf[i + 4];
-                board -> ghosts[0].pos_y = buf[i + 6];
-            }
-            else if (buf[i + 1] == ' '){
+            state = 1;
+            continue;
+        }
+
+        if ( buf[i] == 'T' &&buf[i + 1] == 'A'){
+            board -> ghosts[m_count].passo = buf[i + 6];
+            continue;
+        }
+        if ( buf[i] == 'T' && buf[i + 1] == 'O'){
+            board -> ghosts[m_count].pos_x = buf[i + 4];
+            board -> ghosts[m_count].pos_y = buf[i + 6];
+            continue;
+        }
+        if ( buf[i] == 'T' && buf[i + 1] == ' '){
                 //FIXME TODO
+                //Jogada nula???
             }
-        case 'C':
-        case 'A':
-        case 'D':
-        case 'W':
-        case 'S':
+        if ( buf[i] == 'C'){/*whats this??*/}
+
+        //FIXME no can be because monsters move automatically
+
+        if ( buf[i] == 'A'){
+            write(1, "A", 1);
+            continue;
+        }
+        if ( buf[i] == 'D'){
+            write(1, "D", 1);
+            continue;
+        }
+        if ( buf[i] == 'W'){
+            write(1, "W", 1);
+            continue;   
+        }
+        if ( buf[i] == 'S'){
+            write(1, "S", 1);
+            continue;
+        }
         
     }
 }
 
-void analyse_char_pacman(char buf[], int i, board_t *board) {
+void analyse_pacman(char buf[], board_t *board, int p_count) {
     // Placeholder function to analyze a character
     // Implement your character analysis logic here
 
-    switch (buf[i]){
-        case 'T':
-            if (buf[i + 1] == 'A'){
+    int state = 1;
+    int pos_index = 0;
 
+    for(int i = 0; buf[i] != '\0'; i++){
+        if (buf[i] == '#') {
+            state = 0;
+            while (buf[i] != '\n' || buf[i] != '\0') {
+                i++;
             }
-            if (buf[i + 1] == 'O'){}
-            if (buf[i + 1] == ' '){}
-        case 'C':
-        case 'A':
-        case 'D':
-        case 'W':
-        case 'S':
+            state = 1;
+            continue;
+        }
+
+        if ( buf[i] == 'T' &&buf[i + 1] == 'A'){
+            board -> ghosts[p_count].passo = buf[i + 6];
+            continue;
+        }
+        if ( buf[i] == 'T' && buf[i + 1] == 'O'){
+            board -> ghosts[p_count].pos_x = buf[i + 4];
+            board -> ghosts[p_count].pos_y = buf[i + 6];
+            continue;
+        }
+        if ( buf[i] == 'T' && buf[i + 1] == ' '){
+                //FIXME TODO
+                //Jogada nula???
+            }
+        if ( buf[i] == 'C'){/*whats this??*/}
+
+        //FIXME is this the supposed?
+
+        if ( buf[i] == 'A'){
+            write(1, "A", 1);
+            continue;
+        }
+        if ( buf[i] == 'D'){
+            write(1, "D", 1);
+            continue;
+        }
+        if ( buf[i] == 'W'){
+            write(1, "W", 1);
+            continue;   
+        }
+        if ( buf[i] == 'S'){
+            write(1, "S", 1);
+            continue;
+        }
         
     }
 }
