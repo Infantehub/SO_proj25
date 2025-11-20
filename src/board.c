@@ -375,6 +375,7 @@ int load_ghost(board_t* board) {
     return 0;
 }
 
+// Static Loading
 int load_level(board_t *board, int points) {
     board->height = 5;
     board->width = 10;
@@ -411,6 +412,22 @@ int load_level(board_t *board, int points) {
     return 0;
 }
 
+// File Loading
+int load_level_from_file(board_t *board, const char *filename, int points) {
+    // Placeholder function to load level from file
+    // Every aspect of the board should be set here
+    open_read_file(filename);
+    return load_level(board, points);
+}
+
+int load_ghosts_from_files(board_t *board, const char *filenames[]) {
+    // Placeholder function to load ghosts from files
+    // Every aspect of the ghosts should be set here
+    for (int i = 0; i < length(filenames); i++) {
+        open_read_file(filenames[i]);
+    }
+    return 0;
+}
 void unload_level(board_t * board) {
     free(board->board);
     free(board->pacmans);

@@ -53,6 +53,7 @@ void open_read_file(char f_name[]) {
     int pacman_file_count = 0;
 
     if (f_name[-1] == 'l') analyse_level(buffer, board);
+
     else if(f_name[-1] == 'm'){
         analyse_monster(buffer, board, monster_file_count);
         monster_file_count++;
@@ -61,22 +62,6 @@ void open_read_file(char f_name[]) {
         analyse_char_pacman(buffer, board, pacman_file_count);
         pacman_file_count++;
     }
-
-/**
-    int state = 1;
-    board_t *board = malloc(sizeof(board_t)); //FIXME not sure about this
-
-    //FIXME não seria melhor faze um analyse para cacda tipo de ficheiro?
-    for (int i = 0; i < done; i++) {
-        if (buffer[i] == '#') state = 0;
-        else if (state == 1 && buffer[i] == '\n') state = 1;
-
-        else if (state == 1) {
-            if (f_name[-1] == 'l') analyse_char_level(buffer, i, board);
-            else if(f_name[-1] == 'm') analyse_char_monster(buffer, i, board);
-            else if(f_name[-1] == 'p')analyse_char_pacman(buffer, i, board);
-        }
-    }*/
 
     free(buffer);
     /* close the file */
@@ -88,16 +73,13 @@ void analyse_level(char buf[], board_t *board) {
     // Placeholder function to analyze a character
     // Implement your character analysis logic here
 
-    int state = 1;
     int pos_index = 0;
 
     for(int i = 0; buf[i] != '\0'; i++){
         if (buf[i] == '#') {
-            state = 0;
             while (buf[i] != '\n' || buf[i] != '\0') {
                 i++;
             }
-            state = 1;
             continue;
         };
     
@@ -196,16 +178,13 @@ void analyse_level(char buf[], board_t *board) {
 void analyse_monster(char buf[], board_t *board, int m_count) {
     // Placeholder function to analyze a character
     // Implement your character analysis logic here
-    int state = 1;
     int pos_index = 0;
 
     for(int i = 0; buf[i] != '\0'; i++){
         if (buf[i] == '#') {
-            state = 0;
             while (buf[i] != '\n' || buf[i] != '\0') {
                 i++;
             }
-            state = 1;
             continue;
         }
 
@@ -250,20 +229,17 @@ void analyse_pacman(char buf[], board_t *board, int p_count) {
     // Placeholder function to analyze a character
     // Implement your character analysis logic here
 
-    int state = 1;
     int pos_index = 0;
 
     for(int i = 0; buf[i] != '\0'; i++){
         if (buf[i] == '#') {
-            state = 0;
             while (buf[i] != '\n' || buf[i] != '\0') {
                 i++;
             }
-            state = 1;
             continue;
         }
 
-        if ( buf[i] == 'T' &&buf[i + 1] == 'A'){
+        if ( buf[i] == 'T' && buf[i + 1] == 'A'){
             board -> ghosts[p_count].passo = buf[i + 6];
             continue;
         }
