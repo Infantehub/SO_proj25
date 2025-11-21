@@ -3,71 +3,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <ctype.h>
 
 #include <sys/stat.h>  // for S_IRUSR, S_IWUSR
 #include "../include/board.h"
 
 #define STRIDE 512
-
-void open_read_file(char f_name[]) {
-     /**
-     * the attributes are:
-     * - O_RDONLY: open the file for reading
-     */
-    int fd = open(f_name, O_RDONLY);
-
-    if (fd < 0) { //Opeening error
-        perror("open error");
-        return EXIT_FAILURE;
-    }
-
-    char* buffer = malloc(STRIDE + 1);
-
-    /* read the contents of the file */
-    int done = 0;
-    while (1) {
-        int bytes_read = read(fd, buffer + done, STRIDE);
-
-        if (bytes_read < 0) { //Reading error
-            perror("read error");
-            free(buffer);
-            close(fd);
-            return EXIT_FAILURE;
-        }
-
-        // if we read 0 bytes, we're done, EOF
-        if (bytes_read == 0) {
-            break;
-        }
-        //it might not have managed to read all data.
-
-        done += bytes_read;
-
-        char* new_buffer = realloc(buffer, 2*bytes_read + 1 + done);
-        
-        buffer = new_buffer; 
-    }
-
-    board_t *board = malloc(sizeof(board_t));
-    int monster_file_count = 0;
-    int pacman_file_count = 0;
-
-    if (f_name[-1] == 'l') analyse_level(buffer, board);
-
-    else if(f_name[-1] == 'm'){
-        analyse_monster(buffer, board, monster_file_count);
-        monster_file_count++;
-    } 
-    else if(f_name[-1] == 'p') {
-        analyse_char_pacman(buffer, board, pacman_file_count);
-        pacman_file_count++;
-    }
-
-    free(buffer);
-    /* close the file */
-    close(fd);
-    return EXIT_SUCCESS;
-}
 
 void analyse_level(char buf[], board_t *board) {
     // Placeholder function to analyze a character
@@ -178,7 +119,7 @@ void analyse_level(char buf[], board_t *board) {
 void analyse_monster(char buf[], board_t *board, int m_count) {
     // Placeholder function to analyze a character
     // Implement your character analysis logic here
-    int pos_index = 0;
+    int mvs = 0;
 
     for(int i = 0; buf[i] != '\0'; i++){
         if (buf[i] == '#') {
@@ -187,6 +128,7 @@ void analyse_monster(char buf[], board_t *board, int m_count) {
             }
             continue;
         }
+        if (buf[i] == '\n') continue;
 
         if ( buf[i] == 'T' &&buf[i + 1] == 'A'){
             board -> ghosts[m_count].passo = buf[i + 6];
@@ -200,25 +142,31 @@ void analyse_monster(char buf[], board_t *board, int m_count) {
         if ( buf[i] == 'T' && buf[i + 1] == ' '){
                 //FIXME TODO
                 //Jogada nula???
+
             }
         if ( buf[i] == 'C'){/*whats this??*/}
 
-        //FIXME no can be because monsters move automatically
+        //FIXME what is the atribute turns?
 
         if ( buf[i] == 'A'){
-            write(1, "A", 1);
+            board -> ghosts[m_count].moves[mvs].command = 'A';
+            mvs++;
+            board -> ghosts[m_count].moves[mvs].turns_left++;
             continue;
         }
         if ( buf[i] == 'D'){
-            write(1, "D", 1);
+            board -> ghosts[m_count].moves[mvs].command = 'D';
+            mvs++;
             continue;
         }
         if ( buf[i] == 'W'){
-            write(1, "W", 1);
+            board -> ghosts[m_count].moves[mvs].command = 'W';
+            mvs++;
             continue;   
         }
         if ( buf[i] == 'S'){
-            write(1, "S", 1);
+            board -> ghosts[m_count].moves[mvs].command = 'S';
+            mvs++;
             continue;
         }
         
@@ -229,7 +177,7 @@ void analyse_pacman(char buf[], board_t *board, int p_count) {
     // Placeholder function to analyze a character
     // Implement your character analysis logic here
 
-    int pos_index = 0;
+    int mvs = 0;
 
     for(int i = 0; buf[i] != '\0'; i++){
         if (buf[i] == '#') {
@@ -238,6 +186,7 @@ void analyse_pacman(char buf[], board_t *board, int p_count) {
             }
             continue;
         }
+        if ( buf[i] == '\n') continue;
 
         if ( buf[i] == 'T' && buf[i + 1] == 'A'){
             board -> ghosts[p_count].passo = buf[i + 6];
@@ -254,28 +203,89 @@ void analyse_pacman(char buf[], board_t *board, int p_count) {
             }
         if ( buf[i] == 'C'){/*whats this??*/}
 
-        //FIXME is this the supposed?
+        //FIXME what are the turns??? atribute of command_t
 
         if ( buf[i] == 'A'){
-            write(1, "A", 1);
+            board -> pacmans[p_count].moves[mvs].command = 'A';
+            mvs++;
             continue;
         }
         if ( buf[i] == 'D'){
-            write(1, "D", 1);
+            board -> pacmans[p_count].moves[mvs].command = 'D';
+            mvs++;
             continue;
         }
         if ( buf[i] == 'W'){
-            write(1, "W", 1);
+            board -> pacmans[p_count].moves[mvs].command = 'W';
+            mvs++;
             continue;   
         }
         if ( buf[i] == 'S'){
-            write(1, "S", 1);
+            board -> pacmans[p_count].moves[mvs].command = 'S';
+            mvs++;
             continue;
         }
         
     }
 }
 
-int main(int argc, char* argv[]) {
-    return /*open_read(argc, argv)*/1;
+int open_read_file(board_t *board, char f_name[]) {
+     /**
+     * the attributes are:
+     * - O_RDONLY: open the file for reading
+     */
+    int fd = open(f_name, O_RDONLY);
+
+    if (fd < 0) { //Opeening error
+        perror("open error");
+        return EXIT_FAILURE;
+    }
+
+    char* buffer = malloc(STRIDE + 1);
+
+    /* read the contents of the file */
+    int done = 0;
+    while (1) {
+        int bytes_read = read(fd, buffer + done, STRIDE);
+
+        if (bytes_read < 0) { //Reading error
+            perror("read error");
+            free(buffer);
+            close(fd);
+            return EXIT_FAILURE;
+        }
+
+        // if we read 0 bytes, we're done, EOF
+        if (bytes_read == 0) {
+            break;
+        }
+        //it might not have managed to read all data.
+
+        done += bytes_read;
+
+        char* new_buffer = realloc(buffer, 2*bytes_read + 1 + done);
+        
+        buffer = new_buffer; 
+    }
+
+    //board_t *board = malloc(sizeof(board_t));
+    //better create board outside this function and pass as parameter
+    int monster_file_count = 0;
+    int pacman_file_count = 0;
+
+    if (f_name[-1] == 'l') analyse_level(buffer, board);
+
+    else if(f_name[-1] == 'm'){
+        analyse_monster(buffer, board, monster_file_count);
+        monster_file_count++;
+    } 
+    else if(f_name[-1] == 'p') {
+        analyse_pacman(buffer, board, pacman_file_count);
+        pacman_file_count++;
+    }
+
+    free(buffer);
+    /* close the file */
+    close(fd);
+    return EXIT_SUCCESS;
 }
