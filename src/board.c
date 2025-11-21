@@ -414,26 +414,31 @@ int load_level(board_t *board, int points) {
     return 0;
 }
 
-// File Loading
-int load_level_from_file(board_t *board, char *filename, int points) {
-    // Placeholder function to load level from file
-    // Every aspect of the board should be set here
-    open_read_file(board, filename);
-    return load_level(board, points);
-}
+// File, Pacman and Monsters Loading
+int load_level_from_file(board_t *board, FileArray *fa) {
 
-//FIXME Carefull doing this reading multiple times the same file
-//What should be the filenames associated to each level??
-//Is this the best way to process each file? Shouldn't it be more precise?
-int load_ghosts_from_files(board_t *board, char *filenames[]) {
-    // Placeholder function to load ghosts from files
-    // Every aspect of the ghosts should be set here
-    int len = sizeof(filenames) / sizeof(filenames[0]); 
-    for (int i = 0; i < len; i++) {
-        open_read_file(board, filenames[i]);
+    for(int i = 1; i < fa->count; i++){
+        if(fa->filename[i][strlen(fa->filename[i]) - 1] == 'l'){
+            open_read_file(board, fa->filename[i]); //Loads Level
+
+            for (int j = 1; j < fa->count; j++){
+                if(strcmp(fa->filename[j], board -> pacman_file) == 0){
+                    open_read_file(board, fa->filename[j]); //Loads Pacman
+                }
+            }
+            for (int k = 0; k < board -> n_ghosts; k++){
+                for (int m = 1; m < fa->count; m++){
+                    if(strcmp(fa->filename[m], board -> ghosts_files[k]) == 0){
+                        open_read_file(board, fa->filename[m]); //Loads Monsters
+                    }
+                }
+            }
+            break;
+        }
     }
     return 0;
 }
+
 void unload_level(board_t * board) {
     free(board->board);
     free(board->pacmans);

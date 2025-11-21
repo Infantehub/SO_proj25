@@ -4,11 +4,63 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
+#include <dirent.h>
+#include <sys/stat.h>
 
 #include <sys/stat.h>  // for S_IRUSR, S_IWUSR
 #include "../include/board.h"
 
 #define STRIDE 512
+
+typedef struct {
+    char **filename;
+    size_t count;      // quantos ficheiros foram lidos
+    size_t capacity;   // tamanho total alocado
+} FileArray;
+
+void init_file_array(FileArray *fa) {
+    fa->count = 0;
+    fa->capacity = 4; // começa pequeno
+    fa->filename = malloc(sizeof(char*) * fa->capacity);
+}
+
+void add_file(FileArray *fa, const char *abs_filename) {
+    if (fa->count >= fa->capacity) {
+        fa->capacity *= 2;
+        fa->filename = realloc(fa->filename, sizeof(char*) * fa->capacity);
+    }
+
+    fa->filename[fa->count] = strdup(abs_filename);
+    fa->count++;
+}
+
+void load_directory_files(const char *dirpath, FileArray *fa) {
+    DIR *d = opendir(dirpath);
+    if (!d) {
+        perror("opendir");
+        return;
+    }
+
+    struct dirent *entry;
+
+    while ((entry = readdir(d)) != NULL) {
+
+        // ignorar . e ..
+        if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
+            continue;
+
+        char abs_path[1024];
+        strcpy(abs_path, dirpath);          // copia o diretório
+        strcat(abs_path, "/");              // adiciona a barra
+        strcat(abs_path, entry->d_name);
+        strcat(abs_path, "\0");             // adiciona o nome do ficheiro
+
+        // adicionar ao array
+        add_file(fa, abs_path);
+    }
+
+    closedir(d);
+}
 
 void analyse_level(char buf[], board_t *board) {
     // Placeholder function to analyze a character
@@ -177,6 +229,10 @@ void analyse_pacman(char buf[], board_t *board, int p_count) {
     // Placeholder function to analyze a character
     // Implement your character analysis logic here
 
+    board -> pacmans[p_count].alive = 1;
+    if (p_count == 0) board -> pacmans[p_count].points = 0;
+    if (p_count > 0) board -> pacmans[p_count].points = board -> pacmans[p_count - 1].points;
+    
     int mvs = 0;
 
     for(int i = 0; buf[i] != '\0'; i++){
@@ -188,18 +244,18 @@ void analyse_pacman(char buf[], board_t *board, int p_count) {
         }
         if ( buf[i] == '\n') continue;
 
-        if ( buf[i] == 'T' && buf[i + 1] == 'A'){
-            board -> ghosts[p_count].passo = buf[i + 6];
+        if ( buf[i] == 'P' && buf[i + 1] == 'A'){
+            board -> pacmans[p_count].passo = buf[i + 6];
             continue;
         }
-        if ( buf[i] == 'T' && buf[i + 1] == 'O'){
-            board -> ghosts[p_count].pos_x = buf[i + 4];
-            board -> ghosts[p_count].pos_y = buf[i + 6];
+        if ( buf[i] == 'P' && buf[i + 1] == 'O'){
+            board -> pacmans[p_count].pos_x = buf[i + 4];
+            board -> pacmans[p_count].pos_y = buf[i + 6];
             continue;
         }
         if ( buf[i] == 'T' && buf[i + 1] == ' '){
-                //FIXME TODO
                 //Jogada nula???
+                board -> pacmans[p_count].waiting = buf[i + 2];
             }
         if ( buf[i] == 'C'){/*whats this??*/}
 

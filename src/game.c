@@ -73,6 +73,8 @@ int main(int argc, char** argv) {
         // TODO receive inputs
     }
 
+
+
     // Random seed for any random movements
     srand((unsigned int)time(NULL));
 
@@ -85,7 +87,7 @@ int main(int argc, char** argv) {
     board_t game_board;
 
     while (!end_game) {
-        load_level(&game_board, accumulated_points);
+        load_level_from_file(&game_board, argv, argc);
         draw_board(&game_board, DRAW_MENU);
         refresh_screen();
 
